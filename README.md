@@ -12,6 +12,8 @@
 | Natã de Almeida Santos  | Natan938 |
 
 ## Arquitetura
+
+```mermaid
 flowchart TB
     Aluno["Aluno"] -- Acessa --> Frontend["Frontend - JS/HTML/CSS"]
     Frontend -- Requisicoes --> Backend["Backend - Python"]
@@ -19,3 +21,4 @@ flowchart TB
     InternshipAPI -- Retorna vagas --> Backend
     Backend -- Armazena --> Banco[("Banco de Dados MySQL")]
     Backend -- Resposta JSON --> Frontend
+```
