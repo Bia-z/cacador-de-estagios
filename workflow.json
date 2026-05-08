@@ -1,24 +1,62 @@
 {
-  "name": "My workflow",
+  "name": "Caçador de Estágios",
   "nodes": [
     {
       "parameters": {
+        "path": "c3ad371d-ee38-4757-96d2-03899396f4f0",
+        "formTitle": "Caçador de Estágios",
+        "formDescription": "Preencha os dados abaixo para buscar vagas de estágio",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Área de interesse",
+              "placeholder": "Ex: Tecnologia, Marketing, Design",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Nível desejado",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "estágio" },
+                  { "option": "júnior" },
+                  { "option": "pleno" },
+                  { "option": "sênior" }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ab8e12f0-9a8b-4bd3-8f13-70af6f75dc76",
+      "name": "Form Trigger",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [240, 0],
+      "webhookId": "c3ad371d-ee38-4757-96d2-03899396f4f0"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://jsearch.p.rapidapi.com/search",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
-              "name": "keywords",
-              "value": "={{ $json['Área de interesse'] }}"
+              "name": "query",
+              "value": "={{ $json['Área de interesse'] }} estágio"
             },
             {
-              "name": "jobType",
+              "name": "employment_type",
               "value": "internship"
             },
             {
-              "name": "limit",
-              "value": "20"
+              "name": "num_pages",
+              "value": "1"
             }
           ]
         },
@@ -26,82 +64,67 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "chave-api",
-              "value": "={{ $credentials.httpHeaderAuth.value }}"
+              "name": "x-rapidapi-key",
+              "value": "3d9f8dda97mshec2774e4830e814p141306jsn0d5f62d4304a"
+            },
+            {
+              "name": "x-rapidapi-host",
+              "value": "jsearch.p.rapidapi.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1e711e14-14ea-4062-a5bf-bbd27da5a532",
+      "name": "HTTP Request — JSearch API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 0]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3-flash-preview",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "model",
+              "content": "Você é um assistente especializado em ajudar universitários brasileiros a encontrar estágios e vagas júnior. Seu papel é interpretar dados de vagas de emprego retornados por uma API e apresentá-los de forma clara, amigável e em português. Sempre seja encorajador e prático."
+            },
+            {
+              "role": "user",
+              "content": "=Encontrei os seguintes dados de vaga para a área de {{ $('Form Trigger').item.json['Área de interesse'] }}:\n\nTítulo: {{ $json.data[0].job_title }}\nEmpresa: {{ $json.data[0].employer_name }}\nLocalização: {{ $json.data[0].job_city }}, {{ $json.data[0].job_country }}\nTipo de contrato: {{ $json.data[0].job_employment_type }}\nLink para aplicar: {{ $json.data[0].job_apply_link }}\nDescrição resumida: {{ $json.data[0].job_description.substring(0, 300) }}\n\nApresente essa vaga de forma simpática e motivadora para um universitário que está buscando seu primeiro estágio."
             }
           ]
         },
         "options": {
-          "response": {
-            "response": {}
-          }
+          "simplifyOutput": true
         }
       },
-      "id": "1e711e14-14ea-4062-a5bf-bbd27da5a532",
-      "name": "HTTP Request — LoopCV API",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [
-        496,
-        -160
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\n  \"status\": \"relevante\",\n  \"mensagem\": \"Vaga encontrada para o nível desejado!\",\n  \"vaga\": {\n    \"titulo\": \"{{ $json.title }}\",\n    \"empresa\": \"{{ $json.company }}\",\n    \"nivel\": \"{{ $json.level }}\",\n    \"local\": \"{{ $json.location }}\",\n    \"link\": \"{{ $json.url }}\"\n  }\n}",
-        "options": {
-          "responseCode": 200
-        }
-      },
-      "id": "ed399c3c-a7f9-45b5-bdf4-7dcb6c31e037",
-      "name": "Resposta — Vaga Relevante",
-      "type": "n8n-nodes-base.respondToWebhook",
+      "id": "gemini-node-001",
+      "name": "Gemini — Interpreta Vaga",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [
-        320,
-        192
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\n  \"status\": \"ignorada\",\n  \"mensagem\": \"Esta vaga não é para nível júnior ou estágio.\",\n  \"nivel_encontrado\": \"{{ $json.level }}\"\n}",
-        "options": {
-          "responseCode": 200
-        }
-      },
-      "id": "f33962a7-2ce2-47cc-a2e2-0fb6f9e13599",
-      "name": "Resposta — Vaga Ignorada",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        688,
-        192
-      ]
+      "position": [680, 0]
     },
     {
       "parameters": {
         "conditions": {
           "options": {
-            "caseSensitive": true,
+            "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict",
+            "typeValidation": "loose",
             "version": 1
           },
           "conditions": [
             {
-              "id": "cond-nivel",
-              "leftValue": "={{ $json.level }}",
-              "rightValue": "júnior",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            },
-            {
               "id": "cond-estagio",
-              "leftValue": "={{ $json.level }}",
+              "leftValue": "={{ $('Form Trigger').item.json['Nível desejado'] }}",
               "rightValue": "estágio",
               "operator": {
                 "type": "string",
@@ -109,18 +132,9 @@
               }
             },
             {
-              "id": "cond-intern",
-              "leftValue": "={{ $json.level }}",
-              "rightValue": "intern",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            },
-            {
-              "id": "cond-junior-en",
-              "leftValue": "={{ $json.level }}",
-              "rightValue": "junior",
+              "id": "cond-junior",
+              "leftValue": "={{ $('Form Trigger').item.json['Nível desejado'] }}",
+              "rightValue": "júnior",
               "operator": {
                 "type": "string",
                 "operation": "equals"
@@ -135,62 +149,62 @@
       "name": "IF — Nível é júnior ou estágio?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        496,
-        32
-      ]
+      "position": [900, 0]
     },
     {
       "parameters": {
-        "path": "c3ad371d-ee38-4757-96d2-03899396f4f0",
-        "formTitle": "Buscar Estágios",
-        "formDescription": "Preencha os dados abaixo para buscar vagas",
-        "formFields": {
-          "values": [
-            {
-              "fieldLabel": "Área de interesse",
-              "placeholder": "Ex: Tecnologia, Marketing, Design",
-              "requiredField": true
-            },
-            {
-              "fieldLabel": "Nível desejado",
-              "fieldType": "dropdown",
-              "fieldOptions": {
-                "values": [
-                  {
-                    "option": "estágio"
-                  },
-                  {
-                    "option": "júnior"
-                  },
-                  {
-                    "option": "pleno"
-                  },
-                  {
-                    "option": "sênior"
-                  }
-                ]
-              },
-              "requiredField": true
-            }
-          ]
-        },
-        "options": {}
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"relevante\",\n  \"mensagem\": {{ JSON.stringify($('Gemini — Interpreta Vaga').item.json.text) }},\n  \"vaga\": {\n    \"titulo\": {{ JSON.stringify($('HTTP Request — JSearch API').item.json.data[0].job_title) }},\n    \"empresa\": {{ JSON.stringify($('HTTP Request — JSearch API').item.json.data[0].employer_name) }},\n    \"local\": {{ JSON.stringify($('HTTP Request — JSearch API').item.json.data[0].job_city + ', ' + $('HTTP Request — JSearch API').item.json.data[0].job_country) }},\n    \"link\": {{ JSON.stringify($('HTTP Request — JSearch API').item.json.data[0].job_apply_link) }}\n  }\n}",
+        "options": {
+          "responseCode": 200
+        }
       },
-      "id": "ab8e12f0-9a8b-4bd3-8f13-70af6f75dc76",
-      "name": "Form Trigger",
-      "type": "n8n-nodes-base.formTrigger",
-      "typeVersion": 2,
-      "position": [
-        496,
-        -288
-      ],
-      "webhookId": "c3ad371d-ee38-4757-96d2-03899396f4f0"
+      "id": "ed399c3c-a7f9-45b5-bdf4-7dcb6c31e037",
+      "name": "Resposta — Vaga Relevante",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, -120]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"ignorada\",\n  \"mensagem\": \"Esta vaga não é para nível júnior ou estágio. Tente buscar com outro nível desejado.\",\n  \"nivel_solicitado\": {{ JSON.stringify($('Form Trigger').item.json['Nível desejado']) }}\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "f33962a7-2ce2-47cc-a2e2-0fb6f9e13599",
+      "name": "Resposta — Vaga Ignorada",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 120]
     }
   ],
   "pinData": {},
   "connections": {
-    "HTTP Request — LoopCV API": {
+    "Form Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request — JSearch API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request — JSearch API": {
+      "main": [
+        [
+          {
+            "node": "Gemini — Interpreta Vaga",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini — Interpreta Vaga": {
       "main": [
         [
           {
@@ -218,25 +232,12 @@
           }
         ]
       ]
-    },
-    "Form Trigger": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request — LoopCV API",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     }
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
-  "versionId": "b6bac6ea-ae23-4cf5-8aa5-6389e3e244c3",
   "meta": {
     "instanceId": "9ab8f1e010115bcfa7e0d122bc80b4e84c32b325f7ff3bfe5a4bfc55270524a1"
   },
